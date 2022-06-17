@@ -56,20 +56,18 @@ app.post("/register", (req, res) => {
 app.post("/login", (req, res) => {
     const loginMail = req.body.username;
     const loginPW = req.body.password;
-    User.findOne({email: loginMail},(err, docs) => {
+    User.findOne({email: loginMail},(err, foundUser) => {
         if(err) {
             console.log(err);
         }
         else {
-            if (!docs) {
+            if (!foundUser) {
                 res.send("OOOOOPS, no such mail found!")
             }
-
-            else if (docs.password === loginPW) {
+            else if (foundUser.password === loginPW) {
                 res.render('secrets');
             }
-
-            else if (docs.password !== loginPW) {
+            else if (foundUser.password !== loginPW) {
                 res.send("OOOOOPS, wrong passord!");
             }
         }
