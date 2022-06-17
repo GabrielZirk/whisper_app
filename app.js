@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 
 const app = express();
 app.set('view engine', 'ejs');
-app.use(bodyParser.urlencoded({extended : true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 
@@ -41,14 +41,43 @@ app.post("/register", (req, res) => {
         email: userMail,
         password: userPW
     })
+
+    newUser.save((err) => {
+        if (err) {
+            console.log(err);
+        }
+        else {
+            res.render('secrets');
+        }
+    }
+    )
 });
 
 app.post("/login", (req, res) => {
-    console.log("Login");
-});
+    const loginMail = req.body.username;
+    const loginPW = req.body.password;
+    User.findOne({email: loginMail},(err, docs) => {
+        if(err) {
+            console.log(err);
+        }
+        else {
+            if (!docs) {
+                res.send("OOOOOPS, no such mail found!")
+            }
+
+            else if (docs.password === loginPW) {
+                res.render('secrets');
+            }
+
+            else if (docs.password !== loginPW) {
+                res.send("OOOOOPS, wrong passord!");
+            }
+        }
+    })});
+
 
 app.listen("3000", (err) => {
-    if(err) {
+    if (err) {
         console.log(err);
     }
     else {
