@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
 // const encrypt = require('mongoose-encryption'); Using hashing instead now
-const md5 = require('md5');
+const hashFun = require(process.env.HASH);
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -44,7 +44,7 @@ app.post("/register", (req, res) => {
     const userPW = req.body.password
     const newUser = new User({
         email: userMail,
-        password: md5(userPW)
+        password: hashFun(userPW)
     })
 
     newUser.save((err) => {
@@ -69,7 +69,7 @@ app.post("/login", (req, res) => {
             if (!foundUser) {
                 res.send("OOOOOPS, no such mail found!")
             }
-            else if (foundUser.password === md5(loginPW)) {
+            else if (foundUser.password === hashFun(loginPW)) {
                 res.render('secrets');
             }
             else if (foundUser.password !== loginPW) {
