@@ -19,8 +19,8 @@ const userSchema = new mongoose.Schema({
     password: String
 });
 
-//--- Define encryption before creating the model
-const secret = process.env.SECRET;
+//--- Define encryption before creating the model (implemented hashing, encrpytion no longer necessary)
+//const secret = process.env.SECRET;
 // userSchema.plugin(encrypt, {secret: secret, encryptedFields: ['password']}); //Encrypt only the password field
 
 const User = new mongoose.model("User", userSchema);
