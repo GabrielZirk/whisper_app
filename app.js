@@ -38,7 +38,6 @@ app.get("/login", (req, res) => {
     res.render('login');
 });
 
-
 //----------------------------POST REQUESTS
 app.post("/register", (req, res) => {
     const userMail = req.body.username;
