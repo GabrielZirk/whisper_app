@@ -1,15 +1,25 @@
-require('dotenv').config(); //Require environment variable package as soon as possible
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-const saltRounds = parseInt(process.env.SALT_ROUNDS);
+const session = require('express-session');
+const passport = require("passport");
+const passportLocalMongoose = require("passport-local-mongoose");
 
 const app = express();
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
+
+app.use(session({
+    secret: process.env.SECRET,
+    resave: false,
+    saveUninitialized: false
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 //----------------------------MongoDB/Mongoose setup
 mongoose.connect("mongodb://localhost:27017/userDBSecrets");
@@ -19,7 +29,14 @@ const userSchema = new mongoose.Schema({
     password: String
 });
 
+userSchema.plugin(passportLocalMongoose);
+
 const User = new mongoose.model("User", userSchema);
+
+passport.use(User.createStrategy());
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
 //----------------------------GET REQUESTS
 app.get("/", (req, res) => {
@@ -30,66 +47,58 @@ app.get("/register", (req, res) => {
     res.render('register');
 });
 
+app.get("/secrets", (req, res) => {
+    if (req.isAuthenticated()) {
+        res.render('secrets');
+    }
+    else {
+        res.redirect('login');
+    }
+})
+
 app.get("/login", (req, res) => {
     res.render('login');
 });
 
-//----------------------------POST REQUESTS
-app.post("/register", (req, res) => {
-    const userMail = req.body.username;
-    const userPW = req.body.password
-
-    bcrypt.hash(userPW, saltRounds, (err, hash) => {
-
+app.get("/logout", (req, res) => {
+    req.logout((err) => {
         if (err) {
             console.log(err);
         }
         else {
-            const newUser = new User({
-                email: userMail,
-                password: hash
-            })
-
-            newUser.save((err) => {
-                if (err) {
-                    console.log(err);
-                }
-                else {
-                    res.render('secrets');
-                }
-            }
-            )
+            res.redirect('/');
         }
     });
+});
 
+//----------------------------POST REQUESTS
+app.post("/register", (req, res) => {
+    User.register({ username: req.body.username }, req.body.password, (err, user) => {
+        if (err) {
+            console.log(err);
+            res.redirect('/register');
+        }
+        else {
+            passport.authenticate('local')(req, res, () => {
+                res.redirect('/secrets');
+            })
+        };
+    });
 });
 
 app.post("/login", (req, res) => {
-    const loginMail = req.body.username;
-    const loginPW = req.body.password;
-    User.findOne({ email: loginMail }, (err, foundUser) => {
+    const newUser = new User({
+        username: req.body.username,
+        password: req.body.password
+    })
+    req.login(newUser, (err) => {
         if (err) {
             console.log(err);
         }
         else {
-            if (!foundUser) {
-                res.send("OOOOOPS, no such mail found!")
-            }
-            else {
-                bcrypt.compare(loginPW, foundUser.password, (err, result) => {
-                    if (err) {
-                        console.log(err);
-                    }
-                    else {
-                        if (result) {
-                            res.render("secrets");
-                        }
-                        else {
-                            res.send("OOOOOPS, wrong passord!");
-                        }
-                    }
-                })
-            }
+            passport.authenticate('local')(req, res, () => {
+                res.redirect('/secrets');
+            })
         }
     })
 });
