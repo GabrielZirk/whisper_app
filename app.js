@@ -3,25 +3,21 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-// const encrypt = require('mongoose-encryption'); Using hashing instead now
-const hashFun = require(process.env.HASH);
+const bcrypt = require('bcrypt');
+const saltRounds = parseInt(process.env.SALT_ROUNDS);
 
 const app = express();
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-//----------------------------MongoDB/Mongoose setup incl. encryption
+//----------------------------MongoDB/Mongoose setup
 mongoose.connect("mongodb://localhost:27017/userDBSecrets");
 
 const userSchema = new mongoose.Schema({
     email: String,
     password: String
 });
-
-//--- Define encryption before creating the model (implemented hashing, encrpytion no longer necessary)
-//const secret = process.env.SECRET;
-// userSchema.plugin(encrypt, {secret: secret, encryptedFields: ['password']}); //Encrypt only the password field
 
 const User = new mongoose.model("User", userSchema);
 
@@ -42,20 +38,30 @@ app.get("/login", (req, res) => {
 app.post("/register", (req, res) => {
     const userMail = req.body.username;
     const userPW = req.body.password
-    const newUser = new User({
-        email: userMail,
-        password: hashFun(userPW)
-    })
 
-    newUser.save((err) => {
+    bcrypt.hash(userPW, saltRounds, (err, hash) => {
+
         if (err) {
             console.log(err);
         }
         else {
-            res.render('secrets');
+            const newUser = new User({
+                email: userMail,
+                password: hash
+            })
+
+            newUser.save((err) => {
+                if (err) {
+                    console.log(err);
+                }
+                else {
+                    res.render('secrets');
+                }
+            }
+            )
         }
-    }
-    )
+    });
+
 });
 
 app.post("/login", (req, res) => {
@@ -69,16 +75,24 @@ app.post("/login", (req, res) => {
             if (!foundUser) {
                 res.send("OOOOOPS, no such mail found!")
             }
-            else if (foundUser.password === hashFun(loginPW)) {
-                res.render('secrets');
-            }
-            else if (foundUser.password !== loginPW) {
-                res.send("OOOOOPS, wrong passord!");
+            else {
+                bcrypt.compare(loginPW, foundUser.password, (err, result) => {
+                    if (err) {
+                        console.log(err);
+                    }
+                    else {
+                        if (result) {
+                            res.render("secrets");
+                        }
+                        else {
+                            res.send("OOOOOPS, wrong passord!");
+                        }
+                    }
+                })
             }
         }
     })
 });
-
 
 app.listen("3000", (err) => {
     if (err) {
