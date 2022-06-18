@@ -3,8 +3,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const encrypt = require('mongoose-encryption');
-
+// const encrypt = require('mongoose-encryption'); Using hashing instead now
+const md5 = require('md5');
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema({
 
 //--- Define encryption before creating the model
 const secret = process.env.SECRET;
-userSchema.plugin(encrypt, {secret: secret, encryptedFields: ['password']}); //Encrypt only the password field
+// userSchema.plugin(encrypt, {secret: secret, encryptedFields: ['password']}); //Encrypt only the password field
 
 const User = new mongoose.model("User", userSchema);
 
@@ -44,7 +44,7 @@ app.post("/register", (req, res) => {
     const userPW = req.body.password
     const newUser = new User({
         email: userMail,
-        password: userPW
+        password: md5(userPW)
     })
 
     newUser.save((err) => {
@@ -69,7 +69,7 @@ app.post("/login", (req, res) => {
             if (!foundUser) {
                 res.send("OOOOOPS, no such mail found!")
             }
-            else if (foundUser.password === loginPW) {
+            else if (foundUser.password === md5(loginPW)) {
                 res.render('secrets');
             }
             else if (foundUser.password !== loginPW) {
