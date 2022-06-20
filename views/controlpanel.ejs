@@ -10,7 +10,7 @@
       <form method="post" action="/deletesecret" id="delform">
         <% for (let i=0; i < secret.length; i++) { %>
           <input type="hidden" name="toDelete" value="<%= secret[i]._id %>">
-          <a class="secret-text" href="javascript:{}" onclick="this.closest('form').submit();">
+          <a class="secret-text" href="javascript:{}" onclick="submitForm('delform')">
             <%= secret[i].secret %>
           </a>
           <% } %>
