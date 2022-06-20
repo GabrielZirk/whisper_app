@@ -26,7 +26,8 @@ mongoose.connect("mongodb://localhost:27017/userDBSecrets");
 
 const userSchema = new mongoose.Schema({
     email: String,
-    password: String
+    password: String,
+    secret: [String]
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -48,17 +49,30 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/secrets", (req, res) => {
-    if (req.isAuthenticated()) {
-        res.render('secrets');
-    }
-    else {
-        res.redirect('login');
-    }
+    User.find({secret: {$ne: null}}, (err, docs) => {
+        if(err) {
+            console.log(err);
+        }
+        else {
+            var secret = [];
+            docs.forEach(ele => secret.push(ele.secret));
+            res.render("secrets", {secret : secret.flat()})
+        }
+    })
 })
 
 app.get("/login", (req, res) => {
     res.render('login');
 });
+
+app.get('/submit', (req, res) => {
+    if (req.isAuthenticated()) {
+        res.render("submit");
+    }
+    else {
+        res.redirect('/login')
+    }
+})
 
 app.get("/logout", (req, res) => {
     req.logout((err) => {
@@ -102,6 +116,28 @@ app.post("/login", (req, res) => {
         }
     })
 });
+
+app.post('/submit', (req, res) => {
+    if (req.isAuthenticated()) {
+        User.updateOne({
+            _id: req.user._id
+        },
+            {
+                $push: {
+                    secret: [req.body.secret]
+                }
+            }, (err) => {
+                if (err) {
+                    console.log(err);
+                }
+            });
+        res.redirect('/secrets');
+    }
+    else {
+        res.redirect('/login');
+    }
+})
+
 
 app.listen("3000", (err) => {
     if (err) {
