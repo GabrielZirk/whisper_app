@@ -49,17 +49,31 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/secrets", (req, res) => {
-    User.find({secret: {$ne: null}}, (err, docs) => {
-        if(err) {
+    if (req.isAuthenticated()) {
+        loginStatus = "Log Out"
+        loginStatusRoute = "/logout"
+    }
+    else {
+        loginStatus = "Log In"
+        loginStatusRoute = "/login"
+    }
+    User.find({ secret: { $ne: null } }, (err, docs) => {
+        if (err) {
             console.log(err);
         }
         else {
             var secret = [];
             docs.forEach(ele => secret.push(ele.secret));
-            res.render("secrets", {secret : secret.flat()})
+            res.render("secrets", {
+                secret: secret.flat(),
+                displayedSecrets: "Show only my secrets",
+                toShow: "mySecrets",
+                loginStatus: loginStatus,
+                loginStatusRoute: loginStatusRoute
+            })
         }
     })
-})
+});
 
 app.get("/login", (req, res) => {
     res.render('login');
@@ -138,6 +152,23 @@ app.post('/submit', (req, res) => {
     }
 })
 
+app.post('/secrets', (req, res) => {
+    console.log(req.user);
+    if (req.isAuthenticated() && req.body.mySecrets) {
+        res.render('secrets', {
+            secret: req.user.secret,
+            displayedSecrets: "Show all secrets",
+            toShow: "allSecrets",
+            loginStatus: "Log Out"
+        })
+    }
+    else if (req.isAuthenticated && req.body.allSecrets) {
+        res.redirect('/secrets');
+    }
+    else {
+        res.redirect('/login');
+    }
+})
 
 app.listen("3000", (err) => {
     if (err) {
