@@ -1,10 +1,29 @@
 <%- include('partials/header') %>
 
+  <div class="jumbotron text-center">
+    <div class="container">
+      <i class="fas fa-key fa-6x"></i>
+      <h1 class="display-3">Manage your Secrets</h1>
+      <h3>Click onto the secret you want to delete</h3>
 
 
+      <form method="post" action="/deletesecret" id="delform">
+        <% for (let i=0; i < secret.length; i++) { %>
+          <input type="hidden" name="toDelete" value="<%= secret[i]._id %>">
+          <a class="secret-text" href="javascript:{}" onclick="this.closest('form').submit();">
+            <%= secret[i].secret %>
+          </a>
+          <% } %>
+      </form>
 
+      <hr>
+      <a class="btn btn-light btn-lg" href="<%=loginStatusRoute%>" role="button">
+        <%=loginStatus%>
+      </a>
+      <a class="btn btn-dark btn-lg" href="/secrets" role="button">All Secrets</a>
+      <br>
 
+    </div>
+  </div>
 
-
-
-<%- include('partials/footer') %>
+  <%- include('partials/footer') %>

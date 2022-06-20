@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const session = require('express-session');
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
+const md5 = require('md5');
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -24,15 +25,17 @@ app.use(passport.session());
 //----------------------------MongoDB/Mongoose setup
 mongoose.connect("mongodb://localhost:27017/userDBSecrets");
 
-const userSchema = new mongoose.Schema({
-    email: String,
-    password: String,
-    secret: [String]
-});
+const userSchema = new mongoose.Schema({});
+
+const secretSchema = new mongoose.Schema({
+    userId: String,
+    secret: String
+})
 
 userSchema.plugin(passportLocalMongoose);
 
 const User = new mongoose.model("User", userSchema);
+const Secret = new mongoose.model("Secret", secretSchema);
 
 passport.use(User.createStrategy());
 
@@ -57,22 +60,20 @@ app.get("/secrets", (req, res) => {
         loginStatus = "Log In"
         loginStatusRoute = "/login"
     }
-    User.find({ secret: { $ne: null } }, (err, docs) => {
+    Secret.find({}, 'secret', (err, docs) => {
         if (err) {
             console.log(err);
         }
         else {
-            var secret = [];
-            docs.forEach(ele => secret.push(ele.secret));
-            res.render("secrets", {
-                secret: secret.flat(),
+            res.render('secrets', {
+                secret: docs,
                 displayedSecrets: "Show only my secrets",
                 toShow: "mySecrets",
                 loginStatus: loginStatus,
                 loginStatusRoute: loginStatusRoute
             })
         }
-    })
+    });
 });
 
 app.get("/login", (req, res) => {
@@ -99,6 +100,25 @@ app.get("/logout", (req, res) => {
     });
 });
 
+app.get('/manage', (req, res) => {
+    if (req.isAuthenticated()) {
+        Secret.find({ userId: md5(req.user._id) }, (err, docs) => {
+            if (err) {
+                console.log(err);
+            }
+            else {
+                res.render('controlpanel', {
+                    secret: docs,
+                    loginStatus: loginStatus,
+                    loginStatusRoute: loginStatusRoute
+                })
+            }
+        })
+    }
+    else {
+        res.redirect('/login');
+    }
+})
 //----------------------------POST REQUESTS
 app.post("/register", (req, res) => {
     User.register({ username: req.body.username }, req.body.password, (err, user) => {
@@ -133,34 +153,36 @@ app.post("/login", (req, res) => {
 
 app.post('/submit', (req, res) => {
     if (req.isAuthenticated()) {
-        User.updateOne({
-            _id: req.user._id
-        },
-            {
-                $push: {
-                    secret: [req.body.secret]
-                }
-            }, (err) => {
-                if (err) {
-                    console.log(err);
-                }
-            });
+
+        const newSecret = Secret({
+            userId: md5(req.user._id),
+            secret: req.body.secret
+        })
+        newSecret.save()
         res.redirect('/secrets');
+
     }
     else {
         res.redirect('/login');
     }
-})
+});
 
 app.post('/secrets', (req, res) => {
     console.log(req.user);
     if (req.isAuthenticated() && req.body.mySecrets) {
-        res.render('secrets', {
-            secret: req.user.secret,
-            displayedSecrets: "Show all secrets",
-            toShow: "allSecrets",
-            loginStatus: "Log Out"
-        })
+        Secret.find({ userId: md5(req.user._id) }, (err, docs) => {
+            if (err) {
+                console.log(err);
+            }
+            else {
+                res.render('secrets', {
+                    secret: docs,
+                    displayedSecrets: "Show all secrets",
+                    toShow: "allSecrets",
+                    loginStatus: "Log Out"
+                })
+            }
+        });
     }
     else if (req.isAuthenticated && req.body.allSecrets) {
         res.redirect('/secrets');
@@ -168,13 +190,43 @@ app.post('/secrets', (req, res) => {
     else {
         res.redirect('/login');
     }
+});
+
+app.post('/deletesecret', (req, res) => {
+    if (req.isAuthenticated()) {
+        Secret.deleteOne({ _id: req.body.toDelete }, (err) => {
+            if (err) {
+                console.log(err);
+            }
+        })
+        Secret.find({ _userId: md5(req.user._id) }, (err, docs) => {
+            if (err) {
+                console.log(err);
+            }
+            else {
+                res.redirect('/manage');
+                    }
+        })
+
+    }
+    else {
+        res.redirect('/login')
+    }
 })
 
-app.listen("3000", (err) => {
+let PORT
+if (process.env.PORT) {
+    PORT = process.env.PORT;
+}
+else {
+    PORT = 3000
+}
+
+app.listen(PORT, (err) => {
     if (err) {
         console.log(err);
     }
     else {
-        console.log("Server is running on port 3000.")
+        console.log("Server is running on port " + PORT + ".")
     }
 });
