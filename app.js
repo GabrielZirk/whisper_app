@@ -69,7 +69,7 @@ app.get("/secrets", (req, res) => {
         else {
             res.render('secrets', {
                 secret: docs,
-                displayedSecrets: "Show only my secrets",
+                displayedSecrets: "Only my secrets",
                 toShow: "mySecrets",
                 loginStatus: loginStatus,
                 loginStatusRoute: loginStatusRoute
