@@ -7,20 +7,23 @@
       <h3>Click onto the secret you want to delete</h3>
 
 
-      <form method="post" action="/deletesecret" id="delform">
+      
         <% for (let i=0; i < secret.length; i++) { %>
+          <form method="post" action="/deletesecret" id="delform<%=i%>">
           <input type="hidden" name="toDelete" value="<%= secret[i]._id %>">
-          <a class="secret-text" href="javascript:{}" onclick="submitForm('delform')">
+          <a class="secret-text" href="javascript:{}" onclick="submitForm('delform<%=i%>')">
             <%= secret[i].secret %>
           </a>
+        </form>
           <% } %>
-      </form>
+      
 
       <hr>
       <a class="btn btn-light btn-lg" href="<%=loginStatusRoute%>" role="button">
         <%=loginStatus%>
       </a>
       <a class="btn btn-dark btn-lg" href="/secrets" role="button">All Secrets</a>
+      <a class="btn btn-dark btn-lg" href="/submit" role="button">Submit a Secret</a>
       <br>
 
     </div>

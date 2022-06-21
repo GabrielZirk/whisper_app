@@ -25,7 +25,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 //----------------------------MongoDB/Mongoose setup
-mongoose.connect("mongodb://localhost:27017/userDBSecrets");
+mongoose.connect(process.env.MONGO_URI);
 
 const userSchema = new mongoose.Schema({});
 
@@ -213,20 +213,13 @@ app.post('/secrets', (req, res) => {
 
 app.post('/deletesecret', (req, res) => {
     if (req.isAuthenticated()) {
+        console.log(req.body.toDelete);
         Secret.deleteOne({ _id: req.body.toDelete }, (err) => {
             if (err) {
                 console.log(err);
             }
         })
-        Secret.find({ _userId: md5(req.user._id) }, (err, docs) => {
-            if (err) {
-                console.log(err);
-            }
-            else {
-                res.redirect('/manage');
-                    }
-        })
-
+        res.redirect('/manage')
     }
     else {
         res.redirect('/login')
