@@ -7,6 +7,8 @@ const session = require('express-session');
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
 const md5 = require('md5');
+// import isAdmin from './modules.mjs'
+const mod = require('./modules.js')
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -101,7 +103,7 @@ app.get("/logout", (req, res) => {
 });
 
 app.get('/manage', (req, res) => {
-    if (req.isAuthenticated()) {
+    if (req.isAuthenticated() && !mod.isAdmin(req.user.username)) {
         Secret.find({ userId: md5(req.user._id) }, (err, docs) => {
             if (err) {
                 console.log(err);
@@ -115,6 +117,23 @@ app.get('/manage', (req, res) => {
             }
         })
     }
+    else if (req.isAuthenticated() && mod.isAdmin(req.user.username)) {
+        Secret.find({}, (err, docs) => {
+            if (err) {
+                console.log(err);
+            }
+            else {
+                res.render('controlpanel', {
+                    secret: docs,
+                    loginStatus: loginStatus,
+                    loginStatusRoute: loginStatusRoute
+                })
+            }
+        })
+    }
+
+
+
     else {
         res.redirect('/login');
     }
