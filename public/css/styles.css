@@ -43,3 +43,11 @@ a.secret-text:visited { text-decoration: none; }
 a.secret-text:hover { text-decoration: none; }
 
 a.secret-text:active { text-decoration: none; }
+
+.pw-ok {
+  color: green;
+}
+
+.pw-notok {
+  color: darkred;
+}
